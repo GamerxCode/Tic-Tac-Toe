@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe Game</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #282c34;
+            color: #61dafb;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 10px;
+            margin: 20px auto;
+        }
+        .cell {
+            background-color: #fff;
+            border: 2px solid #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .cell.x::before {
+            content: "X";
+            color: #ff0000;
+        }
+        .cell.circle::before {
+            content: "O";
+            color: #0000ff;
+        }
+        .hidden {
+            display: none;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            border: none;
+            background-color: #61dafb;
+            color: #282c34;
+            margin: 10px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #21a1f1;
+        }
+        .scoreboard {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .score {
+            font-size: 1.2em;
+        }
+        .mode-selector {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tic-Tac-Toe</h1>
+        <div class="mode-selector">
+            <button id="humanButton">Play Against Human</button>
+            <button id="aiButton">Play Against AI</button>
+        </div>
+        <div class="scoreboard">
+            <div class="score" id="xScore">X: 0</div>
+            <div class="score" id="oScore">O: 0</div>
+        </div>
+        <div class="board" id="board">
+            <div class="cell" data-cell></div>
+            <div class="cell" data-cell></div>
+            <div class="cell" data-cell></div>
+            <div class="cell" data-cell></div>
+            <div class="cell" data-cell></div>
+            <div class="cell" data-cell></div>
+            <div class="cell" data-cell></div>
+            <div class="cell" data-cell></div>
+            <div class="cell" data-cell></div>
+        </div>
+        <button id="restartButton" class="hidden">Restart Game</button>
+    </div>
+    <audio id="clickSound" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
+    <audio id="winSound" src="https://www.soundjay.com/button/beep-08b.wav" preload="auto"></audio>
+    <audio id="drawSound" src="https://www.soundjay.com/button/beep-06.wav" preload="auto"></audio>
+    <script>
+        const X_CLASS = 'x';
+        const CIRCLE_CLASS = 'circle';
+        const WINNING_COMBINATIONS = [
+            [0, 1, 2],
+            [3, 4, 5],
+            [6, 7, 8],
+            [0, 3, 6],
+            [1, 4, 7],
+            [2, 5, 8],
+            [0, 4, 8],
+            [2, 4, 6]
+        ];
+        const cellElements = document.querySelectorAll('[data-cell]');
+        const board = document.getElementById('board');
+        const restartButton = document.getElementById('restartButton');
+        const humanButton = document.getElementById('humanButton');
+        const aiButton = document.getElementById('aiButton');
+        const xScoreElement = document.getElementById('xScore');
+        const oScoreElement = document.getElementById('oScore');
+        const clickSound = document.getElementById('clickSound');
+        const winSound = document.getElementById('winSound');
+        const drawSound = document.getElementById('drawSound');
+        let xScore = 0;
+        let oScore = 0;
+        let circleTurn;
+        let isAI = false;
+
+        humanButton.addEventListener('click', () => {
+            isAI = false;
+            startGame();
+        });
+
+        aiButton.addEventListener('click', () => {
+            isAI = true;
+            startGame();
+        });
+
+        restartButton.addEventListener('click', startGame);
+
+        function startGame() {
+            circleTurn = false;
+            cellElements.forEach(cell => {
+                cell.classList.remove(X_CLASS);
+                cell.classList.remove(CIRCLE_CLASS);
+                cell.removeEventListener('click', handleClick);
+                cell.addEventListener('click', handleClick, { once: true });
+            });
+            setBoardHoverClass();
+            restartButton.classList.add('hidden');
+        }
+
+        function handleClick(e) {
+            const cell = e.target;
+            const currentClass = circleTurn ? CIRCLE_CLASS : X_CLASS;
+            placeMark(cell, currentClass);
+            clickSound.play();
+            if (checkWin(currentClass)) {
+                endGame(false);
+                updateScore(currentClass);
+                winSound.play();
+            } else if (isDraw()) {
+                endGame(true);
+                drawSound.play();
+            } else {
+                swapTurns();
+                setBoardHoverClass();
+                if (isAI && !circleTurn) {
+                    aiMove();
+                }
+            }
+        }
+
+        function aiMove() {
+            const availableCells = [...cellElements].filter(cell => !cell.classList.contains(X_CLASS) && !cell.classList.contains(CIRCLE_CLASS));
+            const randomCell = availableCells[Math.floor(Math.random() * availableCells.length)];
+            randomCell.click();
+        }
+
+        function endGame(draw) {
+            if (draw) {
+                alert("Draw!");
+            } else {
+                alert(`${circleTurn ? "O's" : "X's"} Wins!`);
+            }
+            restartButton.classList.remove('hidden');
+        }
+
+        function isDraw() {
+            return [...cellElements].every(cell => {
+                return cell.classList.contains(X_CLASS) || cell.classList.contains(CIRCLE_CLASS);
+            });
+        }
+
+        function placeMark(cell, currentClass) {
+            cell.classList.add(currentClass);
+        }
+
+        function swapTurns() {
+            circleTurn = !circleTurn;
+        }
+
+        function setBoardHoverClass() {
+            board.classList.remove(X_CLASS);
+            board.classList.remove(CIRCLE_CLASS);
+            if (circleTurn) {
+                board.classList.add(CIRCLE_CLASS);
+            } else {
+                board.classList.add(X_CLASS);
+            }
+        }
+
+        function checkWin(currentClass) {
+            return WINNING_COMBINATIONS.some(combination => {
+                return combination.every(index => {
+                    return cellElements[index].classList.contains(currentClass);
+                });
+            });
+        }
+
+        function updateScore(winningClass) {
+            if (winningClass === X_CLASS) {
+                xScore++;
+                xScoreElement.textContent = `X: ${xScore}`;
+            } else {
+                oScore++;
+                oScoreElement.textContent = `O: ${oScore}`;
+            }
+        }
+    </script>
+</body>
+</html>
